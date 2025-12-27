@@ -5,6 +5,7 @@ from parsers.udp import parse_udp_packet
 from parsers.icmp import parse_icmp_packet
 from parsers.ethernet import parse_ethernet_packet
 from detection.portscan import detect_port_scan
+from detection.icmp_sweep import detect_icmp_sweep
 
 conf.use_pcap = True
 
@@ -23,6 +24,7 @@ def process_packet(packet):
     tcp = parse_tcp_packet(packet)
     if tcp:
         parsed_data.update(tcp)
+        detect_port_scan(parsed_data)
 
     udp = parse_udp_packet(packet)
     if udp:
@@ -31,6 +33,7 @@ def process_packet(packet):
     icmp = parse_icmp_packet(packet)
     if icmp:
         parsed_data.update(icmp)
+        detect_icmp_sweep(parsed_data)
 
     # Send parsed data to detection engine
     if parsed_data:
