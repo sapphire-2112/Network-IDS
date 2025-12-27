@@ -4,19 +4,15 @@
 ## Work flow will be like this:
 ## 1. Import necessary modules
 ## 2. Initialize application settings
-## 3. Then it captures user input
-## 4. Process the input using defined functions
-## 5. like parsers and then tests.
-## 6. Test the processed input
-## 7. Log the results
-## 8. Finally, it will display the output to the user.
-## Main file for the application
-## Entry point of the program
+## 3. Start packet capture
+## 4. Packets are parsed
+## 5. Parsed packets are tested by detection modules
+## 6. Alerts are generated if attacks are detected
 
-from capture.sniffer import capture_packet
+from capture.sniffer import start_sniffer
 
 def main():
-    capture_packet()
+    start_sniffer()
 
 if __name__ == "__main__":
     main()

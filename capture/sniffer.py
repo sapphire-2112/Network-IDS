@@ -1,27 +1,44 @@
 from scapy.all import sniff, conf
-from scapy.layers.inet import IP, TCP, UDP, ICMP
+from parsers.ip import parse_ip_packet
+from parsers.tcp import parse_tcp_packet
+from parsers.udp import parse_udp_packet
+from parsers.icmp import parse_icmp_packet
+from parsers.ethernet import parse_ethernet_packet
+from detection.portscan import detect_port_scan
 
 conf.use_pcap = True
 
 def process_packet(packet):
-    print("PACKET CAPTURED")
-    if packet.haslayer(IP):
-        print(f"Source: {packet[IP].src} -> Destination: {packet[IP].dst}")
-        if packet.haslayer(TCP):
-            print(f"Protocol: TCP | Source Port: {packet[TCP].sport} -> Destination Port: {packet[TCP].dport}")
-        elif packet.haslayer(UDP):
-                print(f"Protocol: UDP | Source Port: {packet[UDP].sport} -> Destination Port: {packet[UDP].dport}")
+    parsed_data = {}
 
-        elif packet.haslayer(ICMP):
-            print("Protocol: ICMP")
+    # Layer-wise parsing (bottom → top)
+    eth = parse_ethernet_packet(packet)
+    if eth:
+        parsed_data.update(eth)
 
-    if packet.haslayer("ARP"):
-        print("Common It's a Layer 2 ARP Packet")
+    ip = parse_ip_packet(packet)
+    if ip:
+        parsed_data.update(ip)
 
+    tcp = parse_tcp_packet(packet)
+    if tcp:
+        parsed_data.update(tcp)
 
-def capture_packet():
+    udp = parse_udp_packet(packet)
+    if udp:
+        parsed_data.update(udp)
+
+    icmp = parse_icmp_packet(packet)
+    if icmp:
+        parsed_data.update(icmp)
+
+    # Send parsed data to detection engine
+    if parsed_data:
+        detect_port_scan(parsed_data)
+
+def start_sniffer():
+    """
+    Starts live packet capture.
+    """
     print("[*] Sniffer started...")
-    sniff(count=10,prn=process_packet, store=False)
-
-# START THE SNIFFER
-capture_packet()
+    sniff(prn=process_packet, store=False)
