@@ -11,6 +11,7 @@ def send_alert(alert):
     Sends structured IDS alerts to logging system
     """
 
+
     msg = (
         f"[{timestamp()}] "
         f"ALERT={alert.get('alert_type', 'Unknown')} | "

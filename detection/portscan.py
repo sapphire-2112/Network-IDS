@@ -7,9 +7,6 @@
 import time
 from collections import defaultdict
 
-# Each source IP will have:
-# - first_seen timestamp
-# - set of destination ports accessed
 port_scan_dict = defaultdict(lambda: {
     "first_seen": 0,
     "ports": set()
@@ -29,28 +26,36 @@ def detect_port_scan(parsed_packet):
 
     # Only TCP SYN packets are relevant for port scanning
     if not src_ip or not dst_port or flags != "S":
-        return
+        return None
 
     entry = port_scan_dict[src_ip]
 
-    # First packet from this IP
     if entry["first_seen"] == 0:
         entry["first_seen"] = current_time
 
-    # If packet is inside time window
     if current_time - entry["first_seen"] <= TIME_WINDOW:
         entry["ports"].add(dst_port)
     else:
-        # Reset window
         entry["first_seen"] = current_time
         entry["ports"].clear()
         entry["ports"].add(dst_port)
 
-    # Check threshold
     if len(entry["ports"]) >= THRESHOLD_PORTS_SCANNED:
-        print(f"[ALERT] Port scan detected from {src_ip}")
-        print(f"        Ports scanned: {sorted(entry['ports'])}")
+        alert = {
+            "alert_type": "PORT_SCAN",
+            "severity": "HIGH",
+            "description": "Multiple TCP SYN packets to multiple ports",
+            "src_ip": src_ip,
+            "dst_ip": parsed_packet.get("dst_ip", "N/A"),
+            "additional_info": {
+                "ports_scanned": sorted(entry["ports"]),
+                "time_window": TIME_WINDOW
+            }
+        }
 
-        # Reset after alert
         entry["first_seen"] = 0
         entry["ports"].clear()
+
+        return alert
+
+    return None

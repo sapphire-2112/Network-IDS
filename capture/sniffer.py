@@ -4,44 +4,63 @@ from parsers.tcp import parse_tcp_packet
 from parsers.udp import parse_udp_packet
 from parsers.icmp import parse_icmp_packet
 from parsers.ethernet import parse_ethernet_packet
-from detection.portscan import detect_port_scan
-from detection.icmp_sweep import detect_icmp_sweep
+from detection.rules import apply_rules
+from logger.alert_manager import send_alert
+from detection.feature_extraction import extract_features
+from detection.feature_store import store_features, get_aggregated_features
+from detection.baseline import update_baseline
+from detection.anomaly_detection import detect_anomalies
 
 conf.use_pcap = True
 
 def process_packet(packet):
     parsed_data = {}
 
-    # Layer-wise parsing (bottom → top)
-    eth = parse_ethernet_packet(packet)
-    if eth:
-        parsed_data.update(eth)
 
-    ip = parse_ip_packet(packet)
-    if ip:
-        parsed_data.update(ip)
+    for parser in (
+        parse_ethernet_packet,
+        parse_ip_packet,
+        parse_tcp_packet,
+        parse_udp_packet,
+        parse_icmp_packet
+    ):
 
-    tcp = parse_tcp_packet(packet)
-    if tcp:
-        parsed_data.update(tcp)
-        detect_port_scan(parsed_data)
+        data = parser(packet)
+        if data:
+            parsed_data.update(data)
+    ##print("[DEBUG] Parsed packet:", parsed_data)
 
-    udp = parse_udp_packet(packet)
-    if udp:
-        parsed_data.update(udp)
 
-    icmp = parse_icmp_packet(packet)
-    if icmp:
-        parsed_data.update(icmp)
-        detect_icmp_sweep(parsed_data)
+    if not parsed_data:
+        return
 
-    # Send parsed data to detection engine
-    if parsed_data:
-        detect_port_scan(parsed_data)
+    alerts = apply_rules(parsed_data)
+
+    for alert in alerts:
+        send_alert(alert)
+    
+    features = extract_features(parsed_data)
+    if not features:
+        return
+
+    src_ip = features["src_ip"]
+
+   
+    store_features(src_ip, features)
+
+    aggregated_features = get_aggregated_features(src_ip)
+    if not aggregated_features:
+        return
+
+    anomaly_alerts = detect_anomalies(src_ip, aggregated_features)
+
+    if not anomaly_alerts:
+         update_baseline(src_ip, aggregated_features)
+
+    for alert in anomaly_alerts:
+        send_alert(alert)
+
 
 def start_sniffer():
-    """
-    Starts live packet capture.
-    """
     print("[*] Sniffer started...")
-    sniff(prn=process_packet, store=False)
+    sniff(iface="wlan0",prn=process_packet, store=False)
