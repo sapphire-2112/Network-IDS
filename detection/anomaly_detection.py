@@ -1,5 +1,6 @@
 from detection.baseline import get_baseline
 
+MIN_BASELINE_SAMPLES = 30
 Z_THRESHOLD = 3.0
 
 def detect_anomalies(src_ip, aggregated_features):
@@ -12,7 +13,10 @@ def detect_anomalies(src_ip, aggregated_features):
                 continue
 
             baseline = get_baseline(src_ip, window, feature_name)
-            if not baseline:
+            if not baseline or baseline["count"] < MIN_BASELINE_SAMPLES:
+                 continue
+
+            if baseline.get("learning"):
                 continue
 
             mean = baseline["mean"]

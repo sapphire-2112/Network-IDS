@@ -10,7 +10,7 @@ from detection.feature_extraction import extract_features
 from detection.feature_store import store_features, get_aggregated_features
 from detection.baseline import update_baseline
 from detection.anomaly_detection import detect_anomalies
-
+from detection.alert_suppressor import should_suppress
 conf.use_pcap = True
 
 def process_packet(packet):
@@ -37,7 +37,10 @@ def process_packet(packet):
     alerts = apply_rules(parsed_data)
 
     for alert in alerts:
-        send_alert(alert)
+        if should_suppress(alert):
+            continue
+        else:
+            send_alert(alert)
     
     features = extract_features(parsed_data)
     if not features:
@@ -58,7 +61,10 @@ def process_packet(packet):
          update_baseline(src_ip, aggregated_features)
 
     for alert in anomaly_alerts:
-        send_alert(alert)
+        if should_suppress(alert):
+            continue
+        else:
+            send_alert(alert)
 
 
 def start_sniffer():
