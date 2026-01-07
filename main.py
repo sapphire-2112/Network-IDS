@@ -1,18 +1,23 @@
-## Main file for the application
-## This file initializes and runs the main application logic.
-## It combines various modules and handles user interactions.
-## Work flow will be like this:
-## 1. Import necessary modules
-## 2. Initialize application settings
-## 3. Start packet capture
-## 4. Packets are parsed
-## 5. Parsed packets are tested by detection modules
-## 6. Alerts are generated if attacks are detected
-
+import threading
+import time
+from rich.live import Live
+from ui.live_ui import render_layout
 from capture.sniffer import start_sniffer
 
 def main():
-    start_sniffer()
+    # 🔥 Start sniffer in background thread
+    sniffer_thread = threading.Thread(
+        target=start_sniffer,
+        kwargs={"interface": "wlan0"},
+        daemon=True
+    )
+    sniffer_thread.start()
+
+    # 🔥 Rich Live UI loop
+    with Live(render_layout(), refresh_per_second=4, screen=True) as live:
+        while True:
+            live.update(render_layout())
+            time.sleep(0.25)   # IMPORTANT: yield CPU
 
 if __name__ == "__main__":
     main()

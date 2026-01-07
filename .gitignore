@@ -1,3 +1,19 @@
+# Runtime / generated
+logs/
+*.log
+
+# UI (will add later)
+ui/
+
+# Python
+__pycache__/
+*.pyc
+
+# Env / IDE
+venv/
+.env
+.vscode/
+.idea/
 __pycache__/
 *.pyc
 *.pcap

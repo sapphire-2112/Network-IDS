@@ -24,18 +24,18 @@ def update_baseline(src_ip, aggregated_features):
 
             stats = baseline[src_ip][window][feature_name]
 
-            # --- Welford update ---
+            # ---- Welford update ----
             stats["count"] += 1
             delta = value - stats["mean"]
             stats["mean"] += delta / stats["count"]
             delta2 = value - stats["mean"]
             stats["m2"] += delta * delta2
 
-            # --- Confidence check ---
+            # ---- Confidence gating ----
             if stats["count"] < MIN_BASELINE_SAMPLES:
                 continue
 
-            variance = stats["m2"] / (stats["count"] - 1)
+            variance = stats["m2"] / max(stats["count"] - 1, 1)
             std = math.sqrt(variance)
 
             if stats["prev_mean"] is not None and stats["prev_std"] is not None:
@@ -65,7 +65,7 @@ def get_baseline(src_ip, window, feature_name):
             "count": stats["count"]
         }
 
-    variance = stats["m2"] / (stats["count"] - 1)
+    variance = stats["m2"] / max(stats["count"] - 1, 1)
     std = math.sqrt(variance)
 
     return {

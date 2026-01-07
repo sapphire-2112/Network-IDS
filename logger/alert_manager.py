@@ -1,34 +1,28 @@
+from collections import deque
 from logger.loggers import logger
-import time
-##logs are generalized but alerts will send specified alerts to a different file
-#what shoult be there timestamp,alert type,severity,description,src_ip,dst_ip,additional_info
+from ui.live_ui import add_alert
 
-def timestamp():
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+_alerts = deque(maxlen=200)
 
 def send_alert(alert):
-    """
-    Sends structured IDS alerts to logging system
-    """
+    if not isinstance(alert, dict):
+        return
 
+    _alerts.append(alert)
 
-    msg = (
-        f"[{timestamp()}] "
-        f"ALERT={alert.get('alert_type', 'Unknown')} | "
-        f"SEVERITY={alert.get('severity', 'Medium')} | "
-        f"SRC={alert.get('src_ip', 'N/A')} | "
-        f"DST={alert.get('dst_ip', 'N/A')} | "
-        f"DESC={alert.get('description', '')} | "
-        f"INFO={alert.get('additional_info', '')}"
+    # 🔥 SEND TO RICH UI
+    add_alert(alert)
+
+    # 🔥 SEND TO LOG FILE
+    logger.warning(
+        "ALERT=%s | SEVERITY=%s | SRC=%s | DST=%s | DESC=%s | INFO=%s",
+        alert.get("alert_type", "Unknown"),
+        alert.get("severity", "Medium"),
+        alert.get("src_ip", "N/A"),
+        alert.get("dst_ip", "N/A"),
+        alert.get("description", "N/A"),
+        alert.get("additional_info", {})
     )
 
-    severity = alert.get("severity", "Medium")
-
-    if severity == "High":
-        logger.error(msg)
-    elif severity == "Medium":
-        logger.warning(msg)
-    elif severity == "Low":
-        logger.info(msg)
-    else:
-        logger.info(msg)
+def get_alerts_buffer():
+    return list(_alerts)
